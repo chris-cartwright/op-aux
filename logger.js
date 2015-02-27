@@ -11,7 +11,7 @@ winston.add(winston.transports.File, {
 	timestamp: true,
 	json: false,
 	handleExceptions: true,
-	level: 'info'
+	level: 'debug'
 });
 
 winston.remove(winston.transports.Console);
