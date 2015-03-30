@@ -39,6 +39,9 @@ var commands = {
     },
     "print.stop": function() {
         commands.light(0);
+    },
+    "flash13": function() {
+        led13.blink(500);
     }
 };
 
@@ -55,19 +58,22 @@ jf.Board.prototype.log = function(/* type, module, message [, long description] 
 
 jf.Board.prototype.log.types = logTypes;
 
-var board = new jf.Board({ repl: false });
+var board = new jf.Board({ repl: false, port: config.port });
 var led = null;
+var led13 = null;
 var photoresistor = null;
 
 logger.info("Waiting for board to connect...");
 board.on("ready", function() {
     logger.info("Board connected.");
+
+    led13 = new jf.Led(13);
     
     led = new jf.Led(config.light.pin);
     photoresistor = new jf.Sensor({
         pin:config.photoresistor.pin, frequency: 1000
     }).on("data", function() {
-        logger.debug("Photoresistor: ", this.value);
+        //logger.debug("Photoresistor: ", this.value);
     });
     
     var server = net.createServer(function(stream) {

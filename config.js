@@ -5,6 +5,7 @@ var path = require("path");
 
 var config = {
     socket: "/tmp/op-aux.sock",
+    port: "/dev/ttyUSB0",
     light: {
         level: 50,
         pin: 9
