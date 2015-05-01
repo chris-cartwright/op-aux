@@ -87,3 +87,4 @@ docs/_build/
 target/
 
 # Custom rules
+/config.py
