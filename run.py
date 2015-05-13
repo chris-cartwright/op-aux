@@ -34,7 +34,6 @@ class Board(object):
             time.sleep(0.01)
             ret = self.pin_photo.read()
 
-        print count
         return ret
     
     def __init__(self):
@@ -49,12 +48,12 @@ class Board(object):
 
         self.pin_photo.enable_reporting()
 
-    def __del__(self):
+    def close(self):
         self.board.exit()
 
         # Kill the _iter thread
         self._iter.board = None
-            
+
     def blink13(self):
         while True:
             self.pin_13.write(1)
@@ -63,49 +62,107 @@ class Board(object):
             time.sleep(1)
 
 
-def cmd_light(a):
+commands = {}
+
+
+def command(cls):
+    if cls.name is None:
+        raise NotImplementedError("Class did not specify command name")
+
+    if cls.help is None:
+        raise NotImplementedError("Class did not specify help message")
+
+    commands[cls.name] = cls
+
+
+class CommandBase(object):
+    name = None
+    help = None
+
+    def __init__(self, brd):
+        self.board = brd
+
+    def setup_arg_parser(self, parser):
+        raise NotImplementedError()
+
+    def execute(self, args):
+        raise NotImplementedError()
+
+
+@command
+class Light(CommandBase):
+    name = 'light'
+    help = 'Set light brightness level'
+
+    def setup_arg_parser(self, parser):
+        parser.add_argument('level', type=int, choices=range(0, 101), metavar='{0..100}',
+                            help='Light brightness from 0 to 100')
+
+    def execute(self, args):
+        self.board.light_level = args.level
+
+
+@command
+class Blink13(CommandBase):
+    name = 'blink13'
+    help = 'Blink the LED on pin 13'
+
+    def setup_arg_parser(self, parser):
+        pass
+
+    def execute(self, args):
+        self.board.blink13()
+
+
+@command
+class Print(CommandBase):
+    name = 'print'
+    help = 'Print hooks'
+
+    def setup_arg_parser(self, parser):
+        parser.add_argument('event', choices=['start', 'stop'], help='Print event to respond to')
+
+    def execute(self, args):
+        if args.event == 'start':
+            photo = self.board.photoresistor_level
+            if photo <= config.photoresistor['level']:
+                self.board.light_level = config.light['level']
+        elif args.event == 'stop':
+            self.board.light_level = 0
+
+
+@command
+class Photoresistor(CommandBase):
+    name = 'photoresistor'
+    help = 'Report the current photoresistor value'
+
+    def setup_arg_parser(self, parser):
+        pass
+
+    def execute(self, args):
+        print self.board.photoresistor_level
+
+
+def main():
     board = Board()
-    board.light_level = a.level
 
+    root_parser = argparse.ArgumentParser(description='OctoPrint Auxiliary functionality')
 
-def cmd_blink13(a):
-    board = Board()
-    board.blink13()
+    subparsers = root_parser.add_subparsers()
 
+    for key in commands:
+        cls = commands[key]
+        parser = subparsers.add_parser(cls.name, help=cls.help)
+        cls = cls(board)
+        cls.setup_arg_parser(parser)
+        parser.set_defaults(name=key)
+        commands[key] = cls
 
-def cmd_print(a):
-    board = Board()
-    
-    if a.event == 'start':
-        photo = board.photoresistor_level
-        if photo <= config.photoresistor['level']:
-            board.light_level = config.light['level']
-    elif a.event == 'stop':
-        board.light_level = 0
+    try:
+        arguments = root_parser.parse_args()
+        commands[arguments.name].execute(arguments)
+    finally:
+        board.close()
 
-
-def cmd_photoresistor(a):
-    board = Board()
-    print board.photoresistor_level
-
-root_parser = argparse.ArgumentParser(description='OctoPrint Auxiliary functionality')
-
-subparsers = root_parser.add_subparsers()
-
-light_parser = subparsers.add_parser('light', help='Set light brightness level')
-light_parser.add_argument('level', type=int, choices=range(0, 101), metavar='{0..100}',
-                          help='Light brightness from 0 to 100')
-light_parser.set_defaults(func=cmd_light)
-
-blink13_parser = subparsers.add_parser('blink13', help='Blink the LED on pin 13')
-blink13_parser.set_defaults(func=cmd_blink13)
-
-photoresistor_parser = subparsers.add_parser('photoresistor', help='Report the current photoresistor value')
-photoresistor_parser.set_defaults(func=cmd_photoresistor)
-
-print_parser = subparsers.add_parser('print', help='Print hooks')
-print_parser.add_argument('event', choices=['start', 'stop'], help='Print event to respond to')
-print_parser.set_defaults(func=cmd_print)
-
-args = root_parser.parse_args()
-args.func(args)
+if __name__ == '__main__':
+    main()
