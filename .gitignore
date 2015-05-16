@@ -88,3 +88,4 @@ target/
 
 # Custom rules
 /config.py
+/.idea
