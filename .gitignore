@@ -87,5 +87,5 @@ docs/_build/
 target/
 
 # Custom rules
-/config.py
+/config.yml
 /.idea

@@ -2,8 +2,12 @@
 from pyfirmata import Arduino, util
 
 import time
-import config
 import argparse
+import yaml
+
+config = None
+with open('config.yml') as f:
+    config = yaml.load(f)
 
 
 class Board(object):
@@ -37,10 +41,10 @@ class Board(object):
         return ret
     
     def __init__(self):
-        self.board = Arduino(config.port)
+        self.board = Arduino(config['port'])
 
-        self.pin_led = self.board.get_pin('d:%d:p' % (config.light['pin'],))
-        self.pin_photo = self.board.get_pin('a:%d:i' % (config.photoresistor['pin'],))
+        self.pin_led = self.board.get_pin('d:%d:p' % (config['light']['pin'],))
+        self.pin_photo = self.board.get_pin('a:%d:i' % (config['photoresistor']['pin'],))
         self.pin_13 = self.board.get_pin('d:13:o')
 
         self._iter = util.Iterator(self.board)
@@ -125,8 +129,8 @@ class Print(CommandBase):
     def execute(self, args):
         if args.event == 'start':
             photo = self.board.photoresistor_level
-            if photo <= config.photoresistor['level']:
-                self.board.light_level = config.light['level']
+            if photo <= config['photoresistor']['level']:
+                self.board.light_level = config['light']['level']
         elif args.event == 'stop':
             self.board.light_level = 0
 

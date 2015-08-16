@@ -1,2 +1,4 @@
 pyFirmata==1.0.2
 pyserial==2.7
+PyYAML==3.11
+wheel==0.24.0
